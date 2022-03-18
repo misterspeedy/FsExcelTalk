@@ -700,7 +700,6 @@ open SixLabors.ImageSharp.PixelFormats
 open FsExcel
 open ClosedXML.Excel
 
-
 let client = new HttpClient()
 let stream = client.GetStreamAsync("https://upload.wikimedia.org/wikipedia/commons/5/5e/Flag_of_Ukraine.jpg").Result
 let image = Image.Load<Rgba32>(stream)
