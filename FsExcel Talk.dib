@@ -1,0 +1,719 @@
+#!markdown
+
+<img src="https://raw.githubusercontent.com/misterspeedy/FsExcel/main/assets/logo.png"
+     alt="FsExcel Logo"
+     style="width: 500px;" />
+
+# FsExcel - Create Excel Spreadsheets with Very Simple Code
+     
+[![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/fsexcel.svg?style=social&label=Twitter%20%40kitlovesfsharp)](https://twitter.com/kitlovesfsharp)
+___
+
+#!markdown
+
+# Audience
+
+- Hands up beginner F# users
+- Hands up intermediate F# users
+- Hands up advanced F# users
+
+#!fsharp
+
+#r "nuget: Plotly.NET, 2.0.0-preview.18"
+#r "nuget: Plotly.NET.Interactive, 2.0.0-preview.18"
+
+let beginner = 1
+let intermediate = 1
+let advanced = 1
+
+let values = [ beginner; intermediate; advanced ]
+let labels = ["Beginner"; "Intermediate"; "Advanced"]
+
+open Plotly.NET
+
+Chart.Pie(Labels=labels, values=values)
+
+#!markdown
+
+___
+# The Ur-Requirement
+
+![Report](./assets/report.png)
+
+#!markdown
+
+___
+# ClosedXml
+
+- Mutable style
+- Have to keep track of row and column
+
+#!fsharp
+
+#r "nuget: ClosedXML"
+
+open System.IO
+open System.Globalization
+open ClosedXML.Excel
+
+let tempPath = "/temp"
+
+let workbook = new XLWorkbook()
+let worksheet = workbook.Worksheets.Add("Month names")
+
+for m in 1..12 do
+    let monthName = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)
+    worksheet.Cell(m, 1).Value <- monthName
+
+workbook.SaveAs(Path.Combine(tempPath, "monthnames.xlsx"))
+
+#!markdown
+
+___
+# F# Lists
+
+- Immutable series of values
+- Both elements and the list itself are immutable
+- All elements of same type
+
+#!fsharp
+
+let fruits = [ "Apples"; "Oranges"; "Pears" ]
+
+fruits
+
+#!fsharp
+
+let numbers = [1..10]
+
+numbers
+
+#!fsharp
+
+let longFruits = 
+    [
+        for fruit in [ "Pomegranates"; "Apples"; "Oranges"; "Pears"; "Boysenberries" ] do
+            if fruit.Length > 10 then
+                fruit
+    ]
+
+longFruits
+
+#!markdown
+
+___
+# Discriminated Unions
+
+- Put multiple types in the same type
+- Use "pattern matching" to recover the underlying value
+
+#!fsharp
+
+type Shape =
+    | Circle of radius:float
+    | Square of side:float
+    | Rectangle of length:float*width:float
+
+let c = Circle 5.
+let s = Square 4.
+let r = Rectangle(3., 2.)
+
+let shapes = [c; s; r]
+
+#!fsharp
+
+module Shape =
+
+    let area (s : Shape) =
+        match s with
+        | Circle r -> System.Math.PI * r * r
+        | Square s -> s * s
+        | Rectangle(l, w) -> l * w
+
+let shapes = [c; s; r]
+
+shapes |> List.map (fun shape -> Shape.area shape)
+
+#!markdown
+
+___
+# Fable.React
+
+Web pages described using F# lists!
+
+#!fsharp
+
+#r "nuget: Fable"
+
+module App
+
+open Fable.Core
+open Fable.Recharts
+open Fable.Recharts.Props
+module R = Fable.React.Standard
+module P = Fable.React.Props
+open Data
+
+let margin t r b l =
+    Chart.Margin { top = t; bottom = b; right = r; left = l }
+
+let private onMouseEvent data evt =
+  JS.console.log("MOUSE:", data, evt)
+
+let private onMouseEventIndexed data index evt =
+  JS.console.log("MOUSE:", "Group " + string index, data, evt)
+
+let lineChartSample() =
+    lineChart
+        [ margin 5. 20. 5. 0.
+          Chart.Width 600.
+          Chart.Height 300.
+          Chart.Data data
+          Chart.OnClick onMouseEvent ]
+        [ line
+            [ Cartesian.Type Monotone
+              Cartesian.DataKey "uv"
+              P.Stroke "#8884d8"
+              P.StrokeWidth 2. ]
+            []
+          cartesianGrid
+            [ P.Stroke "#ccc"
+              P.StrokeDasharray "5 5" ]
+            []
+          xaxis [ Cartesian.DataKey "name"] []
+          yaxis [] []
+          tooltip [] []
+        ]
+
+#!markdown
+
+___
+# Embryo FsExcel
+
+    FsExcel = Lists + List Comprehensions + Discriminated Unions + ClosedXML
+
+#!fsharp
+
+#r "nuget: ClosedXML"
+
+open System
+open ClosedXML.Excel
+
+type CellProp =
+    | String of string
+    | Float of float
+
+type Item =
+    | Cell of props : CellProp list
+
+let cells =
+    [
+        Cell [ String "Hello world!"]
+        Cell [ Float System.Math.PI ]
+    ]
+
+let render (items : Item list) =
+    let mutable row = 1
+    let mutable col = 1
+    let wb = new XLWorkbook()
+    let ws = wb.Worksheets.Add("Sheet1")
+    for item in items do
+        match item with
+        | Cell props ->
+            let cell = ws.Cell(row, col)        
+            for prop in props do
+                match prop with
+                | String s -> cell.Value <- s
+                | Float f -> cell.Value <- f
+        col <- col + 1
+    wb
+
+(cells |> render).SaveAs(Path.Combine(tempPath, "HelloFromFsExcel.xlsx"))
+
+#!markdown
+
+___
+# What about Position?
+
+#!fsharp
+
+#r "nuget: ClosedXML"
+
+open System
+open ClosedXML.Excel
+
+type Position =
+    | RightBy of int
+    | DownBy of int
+
+type CellProp =
+    | String of string
+    | Float of float
+    | Next of Position
+
+type Item =
+    | Cell of props : CellProp list
+
+let cells =
+    [
+        Cell [ 
+            String "Hello world!"
+            Next (DownBy 1) 
+        ]
+        Cell [ Float System.Math.PI ]
+    ]
+
+let render (items : Item list) =
+    let mutable row = 1
+    let mutable col = 1
+    let wb = new XLWorkbook()
+    let ws = wb.Worksheets.Add("Sheet1")
+    for item in items do
+        match item with
+        | Cell props ->
+            let cell = ws.Cell(row, col)        
+            for prop in props do
+                match prop with
+                | String s -> cell.Value <- s
+                | Float f -> cell.Value <- f
+                | Next p ->
+                    match p with
+                    | RightBy n -> col <- col + 1
+                    | DownBy n -> row <- row + 1
+    wb
+
+(cells |> render).SaveAs(Path.Combine(tempPath, "HelloFromFsExcel2.xlsx"))
+
+#!markdown
+
+___
+# What about Font Size?
+
+#!fsharp
+
+#r "nuget: ClosedXML"
+
+open System
+open ClosedXML.Excel
+
+type Position =
+    | RightBy of int
+    | DownBy of int
+
+type CellProp =
+    | String of string
+    | Float of float
+    | Next of Position
+    | FontSize of float
+
+type Item =
+    | Cell of props : CellProp list
+
+let cells =
+    [
+        Cell [ 
+            String "Hello world!"
+            Next (DownBy 1) 
+        ]
+        Cell [
+            Float System.Math.PI 
+            FontSize 20.
+        ]
+    ]
+
+let render (items : Item list) =
+    let mutable row = 1
+    let mutable col = 1
+    let wb = new XLWorkbook()
+    let ws = wb.Worksheets.Add("Sheet1")
+    for item in items do
+        match item with
+        | Cell props ->
+            let cell = ws.Cell(row, col)        
+            for prop in props do
+                match prop with
+                | String s -> cell.Value <- s
+                | Float f -> cell.Value <- f
+                | Next p ->
+                    match p with
+                    | RightBy n -> col <- col + 1
+                    | DownBy n -> row <- row + 1
+                | FontSize x ->
+                    cell.Style.Font.FontSize <- x
+    wb
+
+(cells |> render).SaveAs(Path.Combine(tempPath, "HelloFromFsExcel3.xlsx"))
+
+#!markdown
+
+___
+# FsExcel for real
+
+#!fsharp
+
+#r "nuget: FsExcel"
+
+open FsExcel
+
+[ Cell [ String "Hello World "]]
+|> Render.AsFile(Path.Combine(tempPath, "HelloFromFsExcel4.xlsx"))
+
+#!markdown
+
+# Repo Highlights (?)
+
+#!markdown
+
+# The tutorial *is* the readme!
+
+tasks.json:
+
+```javascript
+    {
+        "version": "2.0.0",
+        "tasks": [
+        {
+            "label": "Start watching Tutorial.dib and copy to README.md on save.",
+            "type": "shell",
+            "command": "dotnet watch fsi DibToMarkdown.fsx --project ./src/Scripts/WatchTutorial.csproj   ",
+            "windows": {
+            "command": "dotnet watch fsi DibToMarkdown.fsx --project ./src/Scripts/WatchTutorial.csproj   "
+            },        
+            "presentation": {
+            "reveal": "always",
+            "panel": "new"
+            },
+            "runOptions": { "runOn": "folderOpen" }
+        }
+    }
+```
+
+#!markdown
+
+___
+### DibToMarkdown.fsx
+
+#!markdown
+
+```fsharp
+open System.IO
+
+let inFile = "../Notebooks/Tutorial.dib"
+let outFile = "../../README.md"
+
+let mutable firstLine = true
+let mutable inCode = false
+let mutable skip = false
+ 
+let markDown = 
+    inFile
+    |> File.ReadAllLines
+    |> Array.choose (fun line ->
+        if line.StartsWith "#!fsharp" then
+            inCode <- true
+            skip <- true
+            Some "```fsharp"
+        elif line.StartsWith "#!markdown" then
+            skip <- true
+            if inCode then
+                inCode <- false
+                Some "```"
+            else
+                if firstLine then
+                    None
+                else
+                    Some "---"          
+        else
+            firstLine <- false
+            if skip then
+                skip <- false
+                None
+            else
+                Some line
+    )
+
+File.WriteAllLines(outFile, markDown)
+```
+
+#!markdown
+
+___
+# Oh, and the tutorial *is* the regression tests
+
+tasks.json:
+
+#!markdown
+
+```javascript
+      {
+        "label": "Start watching Tutorial.dib and recreate test actuals generator script on save.",
+        "type": "shell",
+        "command": " dotnet watch fsi DibToActualsScript.fsx --project ./src/Scripts/WatchTutorial.csproj",
+        "windows": {
+          "command": " dotnet watch fsi DibToActualsScript.fsx --project ./src/Scripts/WatchTutorial.csproj"
+        },        
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        },
+        "runOptions": { "runOn": "folderOpen" }
+      },
+      {
+        "label": "Start watching CreateRegressionTestActuals.fsx and run it when regenerated.",
+        "type": "shell",
+        "command": "dotnet watch fsi CreateRegressionTestActuals.fsx --project ./src/Scripts/WatchCreateRegressionTestActuals.csproj",
+        "windows": {
+          "command": "dotnet watch fsi CreateRegressionTestActuals.fsx --project ./src/Scripts/WatchCreateRegressionTestActuals.csproj"
+        },        
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        },
+        "runOptions": { "runOn": "folderOpen" }
+      }
+```
+
+#!markdown
+
+___
+
+DibToActualsScript.fsx:
+
+```fsharp
+open System.IO
+
+let inFile = Path.Combine(__SOURCE_DIRECTORY__, "../Notebooks/Tutorial.dib")
+let outFile = Path.Combine(__SOURCE_DIRECTORY__, "CreateRegressionTestActuals.fsx")
+
+let mutable inCode = false
+let mutable inTest = false
+let mutable testNumber = 1
+ 
+let code = 
+    [
+        "#r \"nuget: ClosedXML\""
+        "#r \"../FsExcel/bin/Debug/netstandard2.1/FsExcel.dll\""
+
+        "let savePath = __SOURCE_DIRECTORY__ + \"/../Tests/RegressionTests/Actual\""
+
+        for line in File.ReadAllLines inFile do
+            if line.StartsWith "#r \"nuget: FsExcel\"" || line.StartsWith "let savePath =" || line.TrimStart().StartsWith "//" then
+                ()
+            elif line.StartsWith "<!-- Test -->" then
+                inTest <- true
+                $"module Test{testNumber} ="
+                testNumber <- testNumber + 1
+            elif line.StartsWith "#!fsharp" then
+                inCode <- true
+            elif line.StartsWith "#!markdown" then
+                inCode <- false
+                inTest <- false
+            elif inCode && inTest then
+                    $"    {line}"
+    ]
+
+File.WriteAllLines(outFile, code)
+```
+
+#!markdown
+
+___
+
+CreateRegressionTestActuals.fsx:
+
+```fsharp
+#r "nuget: ClosedXML"
+#r "../FsExcel/bin/Debug/netstandard2.1/FsExcel.dll"
+let savePath = __SOURCE_DIRECTORY__ + "/../Tests/RegressionTests/Actual"
+module Test1 =
+    
+    
+    
+    open System.IO
+    open FsExcel
+    
+    [
+        Cell [ String "Hello world!" ]
+    ]
+    |> Render.AsFile (Path.Combine(savePath, "HelloWorld.xlsx"))
+    
+module Test2 =
+    
+    open System.IO
+    open FsExcel
+    
+    [
+        for i in 1..10 do
+            Cell [ Integer i ]
+    ]
+    |> Render.AsFile (Path.Combine(savePath, "MultipleCells.xlsx"))
+```
+
+#!markdown
+
+RegressionTests.fs:
+
+```fsharp
+module Tests
+
+open System.IO
+open Xunit
+open ClosedXML.Excel
+
+let expectedsPath = "../../../Expected"
+let actualsPath = "../../../Actual"
+
+module Check =
+
+    let fromFilename (filename : string) =
+        let expected = new XLWorkbook(Path.Combine(expectedsPath, filename))
+        let actual = new XLWorkbook(Path.Combine(actualsPath, filename))
+        Assert.Workbook.Equal(expected, actual)    
+
+[<Fact>]
+let ``RegressionTests`` () =
+    expectedsPath
+    |> Directory.EnumerateFiles
+    |> Seq.iter (Path.GetFileName >> Check.fromFilename)
+```
+
+#!markdown
+
+___
+
+Assert.fs:
+
+```fsharp
+module Assert
+
+open Xunit
+open ClosedXML.Excel
+
+module Cell = 
+
+    let Equal (expected : IXLCell, actual : IXLCell) =
+        if expected.DataType <> actual.DataType then
+            raise (Xunit.Sdk.NotEqualException($"{expected.DataType}", $"{actual.DataType}"))
+        else
+            match expected.DataType with
+            | XLDataType.Text ->
+                let e = expected.GetString()
+                let a = actual.GetString()
+                Assert.Equal(e, a)
+            | XLDataType.Number ->
+                let e = expected.GetDouble()
+                let a = actual.GetDouble()
+                Assert.Equal(e, a)
+            | XLDataType.Boolean ->
+                let e = expected.GetBoolean()
+                let a = actual.GetBoolean()
+                Assert.Equal(e, a)
+            | XLDataType.DateTime ->
+                let e = expected.GetDateTime()
+                let a = actual.GetDateTime()
+                Assert.Equal(e, a)
+            | XLDataType.TimeSpan ->
+                let e = expected.GetTimeSpan()
+                let a = actual.GetTimeSpan()
+                Assert.Equal(e, a)
+            | _ -> 
+                raise <| System.NotImplementedException()
+
+        Assert.Equal(expected.Style.Border.TopBorder, actual.Style.Border.TopBorder)
+        Assert.Equal(expected.Style.Border.RightBorder, actual.Style.Border.RightBorder)
+        Assert.Equal(expected.Style.Border.BottomBorder, actual.Style.Border.BottomBorder)
+        Assert.Equal(expected.Style.Border.LeftBorder, actual.Style.Border.LeftBorder)
+
+        Assert.Equal(expected.Style.Font.Bold, actual.Style.Font.Bold)
+        Assert.Equal(expected.Style.Font.Italic, actual.Style.Font.Italic)
+        Assert.Equal(expected.Style.Font.Underline, actual.Style.Font.Underline)
+        // TODO There seems to be a bug (in ClosedXml or Excel) which means if a spreadsheet
+        // is opened and then saved without any changes, and there is any strikethrough, this
+        // test will start failing.  Need to look at CloseXml source - may be reading the
+        // Strikethrough property incorrectly?
+        Assert.Equal(expected.Style.Font.Strikethrough, actual.Style.Font.Strikethrough)
+
+        Assert.Equal(expected.Style.Font.FontName, actual.Style.Font.FontName)
+        Assert.Equal(expected.Style.Font.FontSize, actual.Style.Font.FontSize)
+
+module Workbook = 
+
+    let Equal (expected : IXLWorkbook, actual : IXLWorkbook) =
+
+        // TODO should explicitly compare worksheet names first
+
+        for ews in expected.Worksheets do
+            match actual.TryGetWorksheet(ews.Name) with
+            | true, aws ->
+                // We combine the CellsUsed sequences from both sides because
+                // the cells that are populated in each don't necessarily overlap perfectly:
+                let allPopulatedAddresses =
+                    (ews.CellsUsed())
+                    |> Seq.append (aws.CellsUsed())
+                    |> Seq.distinctBy (fun c -> c.Address.ColumnNumber, c.Address.RowNumber)
+                    |> Seq.map (fun c -> c.Address)
+
+                for address in allPopulatedAddresses do
+                    let ec = ews.Cell(address)
+                    let ac = aws.Cell(address)
+                    Cell.Equal(ec, ac)
+            | false, _ ->
+                raise <| System.Exception($"Could not open sheet {ews.Name}")     
+
+```
+
+#!markdown
+
+___
+# Trouble in Paradise
+
+- Saving an FxExcel-generated spreadsheet having strikethrough somehow breaks the strikethrough property
+- https://github.com/johncj-improving is working on ability to derive from an existing workbook and change it: https://github.com/misterspeedy/FsExcel/issues/9
+
+- https://github.com/natalie-o-perret would like pushstream support: https://github.com/misterspeedy/FsExcel/issues/8
+- Tests could do with some work
+- Not all Excel features are supported
+
+#!markdown
+
+<marquee direction="up" scrolldelay=200><span style="color:Tomato;font-size:200%;">♥♥♥</span><span style="font-size:200%;">PRs & Feature Requests Extremely Welcome</span><span style="color:Tomato;font-size:200%;">♥♥♥</span></marquee>
+
+#!markdown
+
+https://github.com/misterspeedy/FsExcel
+
+#!markdown
+
+___
+# Party Tricks
+
+#!fsharp
+
+#r "nuget: SixLabors.ImageSharp"
+#r "nuget: FsExcel"
+#r "nuget: ClosedXml"
+
+open System.Net.Http
+open SixLabors.ImageSharp
+open SixLabors.ImageSharp.Processing
+open SixLabors.ImageSharp.PixelFormats
+open FsExcel
+open ClosedXML.Excel
+
+
+let client = new HttpClient()
+let stream = client.GetStreamAsync("https://upload.wikimedia.org/wikipedia/commons/5/5e/Flag_of_Ukraine.jpg").Result
+let image = Image.Load<Rgba32>(stream)
+let width = image.Width / 40
+let height = image.Height / 10
+image.Mutate(fun x -> x.Resize(width, height) |> ignore)
+
+[
+    for y in 0..image.Height-1 do
+        for x in 0..image.Width-1 do
+            let color = image[x, y]
+            let xlColor = XLColor.FromArgb(int color.A, int color.R, int color.G, int color.B)
+            Cell [ BackgroundColor xlColor ]
+        Go NewRow
+]
+|> Render.AsFile(Path.Combine(tempPath, "PartyTrick1.xlsx"))
