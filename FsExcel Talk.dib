@@ -212,6 +212,12 @@ let cells =
         Cell [ Float System.Math.PI ]
     ]
 
+#!markdown
+
+___
+
+#!fsharp
+
 let render (items : Item list) =
     let mutable row = 1
     let mutable col = 1
@@ -262,6 +268,12 @@ let cells =
         ]
         Cell [ Float System.Math.PI ]
     ]
+
+#!markdown
+
+___
+
+#!fsharp
 
 let render (items : Item list) =
     let mutable row = 1
@@ -321,6 +333,12 @@ let cells =
         ]
     ]
 
+#!markdown
+
+___
+
+#!fsharp
+
 let render (items : Item list) =
     let mutable row = 1
     let mutable col = 1
@@ -355,16 +373,16 @@ ___
 
 open FsExcel
 
-[ Cell [ String "Hello World "]]
+[ Cell [ String "Hello World " ]]
 |> Render.AsFile(Path.Combine(tempPath, "HelloFromFsExcel4.xlsx"))
 
 #!markdown
 
-# Repo Highlights (?)
+# Repo Highlights
 
 #!markdown
 
-# The tutorial *is* the readme!
+# - The tutorial *is* the readme!
 
 tasks.json:
 
@@ -438,7 +456,7 @@ File.WriteAllLines(outFile, markDown)
 #!markdown
 
 ___
-# Oh, and the tutorial *is* the regression tests
+# - Oh, and the tutorial *is* the regression tests
 
 tasks.json:
 
@@ -667,9 +685,8 @@ module Workbook =
 ___
 # Trouble in Paradise
 
+- Getting started is a *bit* of a pain and needs documenting
 - Saving an FxExcel-generated spreadsheet having strikethrough somehow breaks the strikethrough property
-- https://github.com/johncj-improving is working on ability to derive from an existing workbook and change it: https://github.com/misterspeedy/FsExcel/issues/9
-
 - https://github.com/natalie-o-perret would like pushstream support: https://github.com/misterspeedy/FsExcel/issues/8
 - Tests could do with some work
 - Not all Excel features are supported
@@ -685,7 +702,7 @@ https://github.com/misterspeedy/FsExcel
 #!markdown
 
 ___
-# Party Tricks
+# Party Trick
 
 #!fsharp
 
@@ -716,3 +733,13 @@ image.Mutate(fun x -> x.Resize(width, height) |> ignore)
         Go NewRow
 ]
 |> Render.AsFile(Path.Combine(tempPath, "PartyTrick1.xlsx"))
+
+#!markdown
+
+___
+# Integration with SAFE Stack
+
+* Generate cells on the server
+* Use `Render.AsStreamBytes`
+* Transfer byte array to client (Fable remoting)
+* Use `bytes.SaveAsFile(name)`
