@@ -42,6 +42,65 @@ ___
 
 #!markdown
 
+# First Cut
+
+#!markdown
+
+```fsharp
+    let headingStyle = ss.CreateStyle()
+    headingStyle.SetFontBold true
+
+    let mutable currentRow = 1
+    ss.SetCellStyle(1, 1, 1, 15, headingStyle) |> ignore
+
+    ss.SetCellValue(currentRow, 1, "xxxxx") |> ignore
+    ss.SetCellValue(currentRow, 2, "xxxxx") |> ignore
+    ss.SetCellValue(currentRow, 3, "xxxxx") |> ignore
+    // etc.
+    ss.SetCellValue(currentRow, 13, "xxxxx") |> ignore
+    ss.SetCellValue(currentRow, 14, "xxxxx") |> ignore
+    ss.SetCellValue(currentRow, 15, "xxxxx") |> ignore
+
+    currentRow <- currentRow + 1
+
+    let xxxxxGroups = rs |> XxxxxGroup.fromRows |> Array.ofSeq
+
+    for xxxxxGroup in xxxxxGroups do
+        let customerName = customerMap |> Map.tryFind xxxxxGroup.CustomerId |> Option.defaultValue "(Unknown)"
+
+        ss.SetCellValue(currentRow, 1, xxxxxGroup.CustomerId) |> ignore
+        ss.SetCellValue(currentRow, 2, customerName) |> ignore
+        ss.SetCellValue(currentRow, 3, xxxxxGroup.XxxxxName) |> ignore
+        ss.SetCellValue(currentRow, 4, xxxxxGroup.Average.ToString()) |> ignore
+        currentRow <- currentRow + 1
+        for indexGroup in xxxxxGroup.IndexGroups do
+            ss.SetCellValue(currentRow, 5, indexGroup.Index) |> ignore
+            ss.SetCellValue(currentRow, 6, indexGroup.Average.ToString()) |> ignore
+            currentRow <- currentRow + 1
+            for xxxxxGroup in indexGroup.XxxxxxxxxxGroups do
+                ss.SetCellValue(currentRow, 7, xxxxxxxxxxxGroup.Resolution) |> ignore
+                ss.SetCellValue(currentRow, 8, xxxxxxxxxxxGroup.Average.ToString()) |> ignore
+                currentRow <- currentRow + 1
+                for row in xxxxxxxxxxGroup.Rows do
+                    ss.SetCellValue(currentRow, 9, row.Xxxx) |> ignore
+                    ss.SetCellValue(currentRow, 10, row.Xxxx) |> ignore
+                    ss.SetCellValue(currentRow, 11, row.Xxxx) |> ignore
+                    ss.SetCellValue(currentRow, 12, row.Xxxx) |> ignore
+                    ss.SetCellValue(currentRow, 13, row.Xxxx |> DateTimeOffset.format) |> ignore
+                    ss.SetCellValue(currentRow, 14, row.Xxxx |> DateTimeOffset.format) |> ignore
+                    ss.SetCellValue(currentRow, 15, (row.Xxxx |> float |> WeeksDays.fromDays).ToString()) |> ignore
+                    currentRow <- currentRow + 1
+
+    ss.AutoFitColumn(1, 15)
+
+    let stream = new IO.MemoryStream()
+    ss.SaveAs(stream)
+    let bytes = stream.ToArray()
+    return Result.Ok bytes
+```
+
+#!markdown
+
 ___
 # ClosedXml
 
